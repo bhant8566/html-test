@@ -125,6 +125,10 @@
     .orange {
       color: #d77835
     }
+    
+    .gray{
+      color:gray
+    }
 
     .list {
       overflow: auto;
@@ -524,14 +528,14 @@
     }
 
     .log-group {
-      margin: 0 0 23px
+      margin: 0 0 15px
     }
 
     .group-title {
       color: #c42e35;
       font-weight: 750;
       font-size: 18px;
-      margin: 7px 0 15px;
+      margin: 7px 0 7px;
       padding-bottom: 8px;
       border-bottom: 1px solid #e8ebef
     }
@@ -547,7 +551,7 @@
       color: #2466b5;
       font-size: 14px;
       font-weight: 600;
-      margin: 15px 0 6px
+      margin: 10px 0 6px
     }
 
     .sub-title small {
@@ -560,7 +564,7 @@
       display: grid;
       grid-template-columns: 105px minmax(0, 1fr);
       gap: 14px;
-      padding: 8px 0;
+      padding: 4px 0;
       border-bottom: 1px solid #f0f2f5;
       font: 12px/1.7 Consolas, 'Microsoft JhengHei', monospace
     }
@@ -786,14 +790,18 @@
     }
 
     .chart-panel {
-      height: clamp(320px, 46vh, 470px);
-      min-height: 320px
+      height: auto;
+      min-height: 0
     }
 
     /* Excel-inspired chart, rendered at its actual dimensions. */
     .chart {
+      flex: none;
+      width: calc(100% - 40px);
+      max-width: 700px;
+      aspect-ratio: 8 / 5;
       padding: 0;
-      margin: 10px 20px 0;
+      margin: 10px auto 0;
       background: #fdfdfb
     }
 
@@ -830,22 +838,116 @@
       stroke: #4472c4;
       stroke-width: 1
     }
+
+    #chart [data-day] {
+      cursor: pointer;
+      outline: none
+    }
+
+    .svg-point-halo {
+      fill: #4472c4;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease, fill 150ms ease
+    }
+
+    #chart .svg-point {
+      transition: fill 150ms ease, stroke 150ms ease
+    }
+
+    #chart [data-day]:hover .svg-point-halo,
+    #chart [data-day]:focus-visible .svg-point-halo {
+      opacity: .16
+    }
+
+    #chart [data-day].selected .svg-point-halo {
+      fill: #ed8936;
+      opacity: .2
+    }
+
+    #chart [data-day].selected .svg-point {
+      fill: #ed8936;
+      stroke: #ed8936
+    }
+
+    #chart [data-day].selected:hover .svg-point-halo,
+    #chart [data-day].selected:focus-visible .svg-point-halo {
+      opacity: .32
+    }
+    /* Center the compact dashboard with space on both sides. */
+    main {
+      width: 100%;
+      max-width: 1200px;
+      min-width: 0;
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 24px 32px;
+      gap: 22px
+    }
+
+    .left {
+      width: 200px;
+      min-width: 200px;
+      flex: 0 0 200px;
+      padding-right: 12px
+    }
+
+    .machine-name {
+      white-space: nowrap;
+      letter-spacing: 0
+    }
+
+    .machine-total {
+      font-weight: 400
+    }
+
+    .equipment-group {
+      margin: 2px 0 5px
+    }
+
+    .equipment-type {
+      margin: 0;
+      padding: 3px 11px;
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--muted)
+    }
+
+    .equipment-machines {
+      margin-left: 12px;
+      border-left: 1px solid var(--line)
+    }
+
+    .equipment-machines .machine {
+      padding: 2px 8px
+    }
+
+    .log-panel {
+      min-height: 0
+    }
+
+    .log-line {
+      display: block
+    }
+
+    @media(max-width:700px) {
+      main {
+        flex-direction: column
+      }
+
+      .left {
+        width: 100%;
+        min-width: 0;
+        flex: none;
+        border-right: 0;
+        padding-right: 0
+      }
+
+      .right {
+        width: 100%
+      }
+    }
   </style>
-  <header>
-    <div class="brand">
-      <div class="logo">
-        ▥
-      </div>
-      <div>
-        <h1>機台異常監控</h1>
-        <small>EQUIPMENT LOG MONITOR</small>
-      </div>
-    </div>
-    <div>
-      <span class="demo">模擬資料 · 版面示範</span>
-      <small>工程師 Chen　｜　2026 / 10 / 12</small>
-    </div>
-  </header>
   <main>
     <aside class="left" id="left">
       <section class="panel machine-panel">
@@ -857,7 +959,7 @@
       </section>
       <section class="panel machine-panel quiet">
         <div class="section-head">
-          <span>負責機台 · 今日無錯誤</span>
+          <span><span class="gray">●</span> 今日無錯誤</span>
           <span class="count">8 台</span>
         </div>
         <div class="list" id="quiet"></div>
@@ -872,7 +974,6 @@
               <span style="font-weight:400;color:#b3bdca">/</span>
               近七日錯誤趨勢
             </div>
-            <small>2026 / 10 / 06 — 2026 / 10 / 12</small>
           </div>
         </div>
         <div class="chart">
@@ -888,18 +989,10 @@
       <section class="panel log-panel">
         <div class="log-head">
           <div>
-            <div class="title">
-              錯誤訊息
-              <span class="count" id="log-count"></span>
-            </div>
-            <small id="log-context"></small>
+            <small id="log-context"><span id="log-context-details"></span><span class="count" id="log-count"></span></small>
           </div>
         </div>
         <div class="log-scroll" id="log-scroll"></div>
-        <div class="footer">
-          <span>點選圖表資料點，或使用箭頭切換日期</span>
-          <span>示範資料 · 非即時監控</span>
-        </div>
       </section>
     </section>
   </main>
@@ -920,8 +1013,15 @@
     const $ = id => document.getElementById(id);
 
     function lists() {
-      ['alerts', 'quiet'].forEach((id, g) => {
-        $(id).innerHTML = machines.map((m, i) => ((i < 6) !== (g === 0)) ? '' : `<button class="machine ${i===selected?'active':''}" data-machine="${i}"><span><span class="machine-name">${m[0]}</span><small>${m[1]}</small></span><span class="badge">${m[2][6]}</span></button>`).join('')
+      ['alerts', 'quiet'].forEach(id => {
+        const groups = new Map();
+        machines.forEach((m, i) => {
+          if ((m[2][6] > 0) !== (id === 'alerts')) return;
+          const eqptype = m[0].split('-')[0];
+          if (!groups.has(eqptype)) groups.set(eqptype, []);
+          groups.get(eqptype).push({machine: m, index: i})
+        });
+        $(id).innerHTML = [...groups].map(([eqptype, entries]) => `<section class="equipment-group"><h3 class="equipment-type">${eqptype}</h3><div class="equipment-machines">${entries.map(({machine: m, index: i}) => `<button class="machine ${i===selected?'active':''}" data-machine="${i}"><span class="machine-name">${m[0]} <span class="machine-total">(${m[2][6]})</span></span></button>`).join('')}</div></section>`).join('')
       });
       document.querySelectorAll('[data-machine]').forEach(b => b.onclick = () => {
         selected = +b.dataset.machine;
@@ -986,13 +1086,14 @@
       const pts = machine[2].map((v, i) => [x(i), y(v), v]);
       s += `<path d="${pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')}" class="svg-line" stroke="${color}"/>`;
       pts.forEach((p, i) => {
-        s += `<g data-day="${i}" tabindex="0" role="button" aria-label="${dates[i]}：${p[2]} 筆錯誤" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="17" fill="transparent"/><circle cx="${p[0]}" cy="${p[1]}" r="4" class="svg-point" fill="${color}"/><text x="${p[0]}" y="${p[1]-9}" text-anchor="middle" class="svg-value-label">${p[2]}</text><text x="${p[0]}" y="${m.t+plotH+24}" text-anchor="middle" class="svg-label">10/${String(i+6).padStart(2,'0')}</text></g>`
+        s += `<g data-day="${i}" tabindex="0" role="button" aria-label="${dates[i]}：${p[2]} 筆錯誤"><circle cx="${p[0]}" cy="${p[1]}" r="26" fill="transparent" pointer-events="all"/><circle cx="${p[0]}" cy="${p[1]}" r="12" class="svg-point-halo"/><circle cx="${p[0]}" cy="${p[1]}" r="4" class="svg-point" fill="${color}"/><text x="${p[0]}" y="${p[1]-9}" text-anchor="middle" class="svg-value-label">${p[2]}</text><text x="${p[0]}" y="${m.t+plotH+24}" text-anchor="middle" class="svg-label">10/${String(i+6).padStart(2,'0')}</text></g>`
       });
       const gy = m.t + 18;
       s += `<line x1="${w-m.r+24}" y1="${gy-4}" x2="${w-m.r+46}" y2="${gy-4}" stroke="${color}" stroke-width="2" stroke-linecap="round"/><text x="${w-m.r+52}" y="${gy}" class="svg-label">錯誤筆數</text>`;
       $('chart').setAttribute('viewBox', `0 0 ${w} ${h}`);
       $('chart').innerHTML = s;
       $('chart-name').textContent = machine[0];
+      updateChartSelection();
       document.querySelectorAll('[data-day]').forEach(g => {
         g.onclick = () => {
           day = +g.dataset.day;
@@ -1006,6 +1107,14 @@
         }
       })
     }
+    function updateChartSelection() {
+      $('chart').querySelectorAll('[data-day]').forEach(g => {
+        const active = +g.dataset.day === day;
+        g.classList.toggle('selected', active);
+        g.setAttribute('aria-pressed', String(active))
+      })
+    }
+
     const categories = [{
       name: 'ReadTagFail',
       subs: [{
@@ -1033,13 +1142,14 @@
     }];
 
     function logs() {
+      updateChartSelection();
       const m = machines[selected],
         n = m[2][day];
       $('date').textContent = dates[day];
       $('prev').disabled = day === 0;
       $('next').disabled = day === 6;
       $('log-count').textContent = n + ' 筆';
-      $('log-context').textContent = `${m[0]}　 /　 ${dates[day]}　 /　 錯誤 log`;
+      $('log-context-details').textContent = `${m[0]}　 /　 ${dates[day]}　 /　 `;
       let sequence = 0;
       const groups = categories.map(c => ({
         ...c,
@@ -1055,7 +1165,7 @@
       }
       $('log-scroll').innerHTML = n ? groups.map(c => {
         const total = c.subs.reduce((a, b) => a + b.entries.length, 0);
-        return total ? `<section class="log-group"><h3 class="group-title">${c.name}<small>${total} 筆</small></h3>${c.subs.filter(sub=>sub.entries.length).map(sub=>`<h4 class="sub-title">${sub.name}<small>${sub.entries.length} 筆</small></h4>${sub.entries.map(i=>`<div class="log-line"><span class="log-time">${String(17-Math.floor(i/6)).padStart(2,'0')}:${String(53-i%6*8).padStart(2,'0')}:${String(i*7%60).padStart(2,'0')}.${String(i*137%1000).padStart(3,'0')}</span><div class="log-text">[${dates[day]}] ${sub.text.replace('{id}',m[0])}</div></div>`).join('')}`).join('')}</section>` : ''
+        return total ? `<section class="log-group"><h3 class="group-title">${c.name}<small>${total} 筆</small></h3>${c.subs.filter(sub=>sub.entries.length).map(sub=>`<h4 class="sub-title">${sub.name}<small>${sub.entries.length} 筆</small></h4>${sub.entries.map(i=>`<div class="log-line"><div class="log-text">[${dates[day]}] ${sub.text.replace('{id}',m[0])}</div></div>`).join('')}`).join('')}</section>` : ''
       }).join('') : '<div class="empty">此日期無錯誤紀錄<br><small>可使用上一日按鈕查看歷史 log</small></div>';
       $('log-scroll').scrollTop = 0
     }
