@@ -1,0 +1,1085 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>機台異常監控</title>
+  <style>
+    :root {
+      --ink: #23334a;
+      --muted: #8290a2;
+      --line: #e6ebf1;
+      --blue: #346ee8
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: #f4f6fa;
+      color: var(--ink);
+      font: 14px 'Segoe UI', 'Microsoft JhengHei', sans-serif
+    }
+
+    button,
+    input {
+      font: inherit
+    }
+
+    button {
+      cursor: pointer
+    }
+
+    header {
+      height: 78px;
+      background: white;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px
+    }
+
+    .logo {
+      background: var(--blue);
+      color: white;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 24px
+    }
+
+    h1 {
+      font-size: 19px;
+      margin: 0 0 5px
+    }
+
+    small,
+    .muted {
+      color: var(--muted)
+    }
+
+    .demo {
+      background: #edf3ff;
+      color: #4774cb;
+      padding: 6px 11px;
+      border-radius: 6px;
+      margin-right: 18px
+    }
+
+    main {
+      height: calc(100dvh - 78px);
+      padding: 20px;
+      display: flex;
+      min-height: 550px
+    }
+
+    .left {
+      width: 27%;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px #23334a03
+    }
+
+    .machine-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 3
+    }
+
+    .machine-panel.quiet {
+      flex: 2
+    }
+
+    .section-head {
+      padding: 19px 18px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600
+    }
+
+    .count {
+      font-size: 12px;
+      background: #f0f3f8;
+      padding: 4px 8px;
+      border-radius: 5px
+    }
+
+    .orange {
+      color: #d77835
+    }
+
+    .list {
+      overflow: auto;
+      padding: 0 9px 9px
+    }
+
+    .machine {
+      width: 100%;
+      background: white;
+      border: 1px solid transparent;
+      padding: 12px 11px;
+      margin: 3px 0;
+      border-radius: 8px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .machine:hover {
+      background: #f5f8ff
+    }
+
+    .machine.active {
+      background: #edf3ff;
+      border-color: #b8ceff
+    }
+
+    .machine-name {
+      font-weight: 650;
+      letter-spacing: .4px
+    }
+
+    .machine small {
+      display: block;
+      font-size: 11px;
+      margin-top: 5px
+    }
+
+    .badge {
+      color: #d36a30;
+      background: #fff0e6;
+      border-radius: 6px;
+      min-width: 35px;
+      text-align: center;
+      padding: 5px
+    }
+
+    .quiet .machine {
+      color: #919bab
+    }
+
+    .quiet .machine.active {
+      color: var(--blue)
+    }
+
+    .quiet .badge {
+      background: #f2f4f7;
+      color: #9aa3b1
+    }
+
+    .split {
+      width: 17px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none
+    }
+
+    .split:after {
+      content: '';
+      height: 44px;
+      width: 4px;
+      border-radius: 4px;
+      background: #c8d1df
+    }
+
+    .split:hover:after,
+    .dragging .split:after {
+      background: var(--blue)
+    }
+
+    .dragging {
+      cursor: col-resize;
+      user-select: none
+    }
+
+    .right {
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      grid-template-rows: 1fr 2fr;
+      gap: 16px
+    }
+
+    .chart-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 23px 0
+    }
+
+    .title {
+      font-weight: 650;
+      font-size: 16px
+    }
+
+    .chart-head small {
+      display: block;
+      margin-top: 5px
+    }
+
+    .legend {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .legend:before {
+      content: '●';
+      color: var(--blue);
+      margin-right: 7px
+    }
+
+    .chart {
+      flex: 1;
+      min-height: 85px;
+      padding: 4px 20px 0
+    }
+
+    svg {
+      height: 100%;
+      width: 100%;
+      overflow: visible
+    }
+
+    .date-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      padding: 9px;
+      border-top: 1px solid #f1f4f8;
+      font-size: 12px
+    }
+
+    .date-controls button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: white;
+      padding: 5px 10px;
+      color: #536780
+    }
+
+    .date-controls button:disabled {
+      opacity: .3;
+      cursor: default
+    }
+
+    .date-controls strong {
+      min-width: 92px;
+      text-align: center
+    }
+
+    .log-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0
+    }
+
+    .log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 21px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .log-head small {
+      display: block;
+      margin-top: 6px
+    }
+
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #738198
+    }
+
+    .tools input {
+      accent-color: var(--blue)
+    }
+
+    .log-scroll {
+      flex: 1;
+      overflow: auto;
+      min-width: 0
+    }
+
+    .log-table {
+      border-collapse: collapse;
+      width: 100%;
+      font: 12px 'Consolas', 'Microsoft JhengHei', monospace
+    }
+
+    .log-table th {
+      background: #f7f9fc;
+      position: sticky;
+      top: 0;
+      color: #8290a2;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 10px 17px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .log-table td {
+      padding: 13px 17px;
+      border-bottom: 1px solid #edf0f5;
+      white-space: nowrap;
+      vertical-align: top
+    }
+
+    .log-table tr:hover td {
+      background: #f8faff
+    }
+
+    .log-table td:last-child {
+      width: 100%;
+      white-space: pre
+    }
+
+    .wrap td:last-child {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      min-width: 240px
+    }
+
+    .level {
+      color: #d87945;
+      background: #fff1e8;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px
+    }
+
+    .empty {
+      text-align: center;
+      padding: 65px;
+      color: #8d99aa
+    }
+
+    .footer {
+      padding: 10px 20px;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      color: #94a0b1;
+      display: flex;
+      justify-content: space-between
+    }
+
+    @media(max-width:700px) {
+      header {
+        padding: 0 14px
+      }
+
+      .demo {
+        display: none
+      }
+
+      main {
+        padding: 10px;
+        overflow: auto
+      }
+
+      .left {
+        min-width: 170px;
+        width: 32%
+      }
+
+      .section-head {
+        padding: 12px;
+        font-size: 12px
+      }
+
+      .machine {
+        padding: 9px 5px
+      }
+
+      .machine small {
+        font-size: 10px
+      }
+
+      .right {
+        min-width: 350px
+      }
+
+      .log-head {
+        padding: 12px
+      }
+
+      .tools {
+        gap: 3px
+      }
+
+      .split {
+        width: 12px
+      }
+    }
+
+    /* Flat layout */
+    body {
+      background: #fff
+    }
+
+    .panel {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent
+    }
+
+    main {
+      gap: 22px
+    }
+
+    .left {
+      gap: 0;
+      width: 27%;
+      flex-shrink: 0;
+      border-right: 1px solid #dce2eb;
+      padding-right: 20px
+    }
+
+    .quiet {
+      border-top: 1px solid #dce2eb;
+      margin-top: 12px;
+      padding-top: 6px
+    }
+
+    .right {
+      gap: 0
+    }
+
+    .chart-panel {
+      border-bottom: 1px solid #dce2eb
+    }
+
+    .machine {
+      border-radius: 0;
+      margin: 0;
+      border: 0;
+      border-left: 3px solid transparent
+    }
+
+    .machine.active {
+      border: 0;
+      border-left: 3px solid #346ee8;
+      background: #edf3ff
+    }
+
+    .badge,
+    .count,
+    .demo {
+      border-radius: 0;
+      background: transparent
+    }
+
+    .logo {
+      border-radius: 0
+    }
+
+    .log-head {
+      border-bottom: 0;
+      padding: 17px 22px 12px
+    }
+
+    .date-controls button {
+      border-radius: 0
+    }
+
+    .log-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 22px 20px
+    }
+
+    .log-group {
+      margin: 0 0 23px
+    }
+
+    .group-title {
+      color: #c42e35;
+      font-weight: 750;
+      font-size: 18px;
+      margin: 7px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e8ebef
+    }
+
+    .group-title small {
+      font-size: 12px;
+      color: #a7777b;
+      font-weight: 400;
+      margin-left: 12px
+    }
+
+    .sub-title {
+      color: #2466b5;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 15px 0 6px
+    }
+
+    .sub-title small {
+      color: #7393b6;
+      font-weight: 400;
+      margin-left: 8px
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 105px minmax(0, 1fr);
+      gap: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font: 12px/1.7 Consolas, 'Microsoft JhengHei', monospace
+    }
+
+    .log-time {
+      color: #8a96a5;
+      white-space: nowrap
+    }
+
+    .log-text {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #455064;
+      min-width: 0
+    }
+
+    .footer {
+      border-radius: 0
+    }
+
+    .section-head {
+      padding-left: 10px
+    }
+
+    .chart-head {
+      padding-top: 12px
+    }
+
+    @media(max-width:700px) {
+      main {
+        gap: 12px;
+        min-width: 650px
+      }
+
+      .left {
+        min-width: 180px;
+        padding-right: 10px
+      }
+
+      .right {
+        min-width: 0
+      }
+
+      .log-line {
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 8px
+      }
+    }
+
+    /* One shared page scrollbar and a soft warm-white surface. */
+    html {
+      overflow-y: scroll;
+      background: #f7f6f2
+    }
+
+    body {
+      background: #f7f6f2
+    }
+
+    header {
+      background: #f7f6f2
+    }
+
+    main {
+      height: auto;
+      min-height: calc(100dvh - 78px);
+      align-items: flex-start;
+      overflow: visible
+    }
+
+    .left {
+      display: block
+    }
+
+    .machine-panel,
+    .machine-panel.quiet {
+      display: block;
+      flex: none;
+      overflow: visible
+    }
+
+    .list {
+      overflow: visible
+    }
+
+    .machine {
+      background: transparent
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      min-width: 0
+    }
+
+    .chart-panel {
+      height: calc((100dvh - 118px)/3);
+      min-height: 220px;
+      flex: none
+    }
+
+    .log-panel {
+      display: block;
+      overflow: visible;
+      min-height: calc((100dvh - 118px)*2/3)
+    }
+
+    .log-scroll {
+      overflow: visible
+    }
+
+    .panel {
+      overflow: visible
+    }
+
+    .quiet {
+      margin-top: 18px
+    }
+
+    .log-line {
+      border-bottom-color: #e8e8e2
+    }
+
+    .group-title {
+      border-bottom-color: #e1e2dd
+    }
+
+    .footer {
+      margin-top: 12px
+    }
+
+    .date-controls {
+      border-top-color: #e8e8e2
+    }
+
+    .date-controls button {
+      background: #fbfaf7
+    }
+
+    .machine:hover {
+      background: #eeeee9
+    }
+
+    .machine.active {
+      background: #e9eef8
+    }
+
+    @media(max-width:700px) {
+      main {
+        overflow: visible
+      }
+
+      .chart-panel {
+        min-height: 220px
+      }
+    }
+
+    /* Narrower equipment list and taller chart. */
+    .left {
+      width: 22%;
+      min-width: 210px
+    }
+
+    .chart-panel {
+      height: clamp(290px, 44vh, 440px);
+      min-height: 290px
+    }
+
+    .log-panel {
+      min-height: calc((100dvh - 118px)*.56)
+    }
+
+    @media(max-width:700px) {
+      .left {
+        width: 22%;
+        min-width: 170px
+      }
+
+      .chart-panel {
+        height: 290px;
+        min-height: 290px
+      }
+    }
+
+    .svg-grid-line {
+      stroke: #dedfdc;
+      stroke-width: 1
+    }
+
+    .svg-axis {
+      stroke: #aeb6bf;
+      stroke-width: 1
+    }
+
+    .svg-label {
+      fill: #7a8797;
+      font-size: 13px
+    }
+
+    .svg-value-label {
+      fill: #526780;
+      font-size: 13px;
+      font-weight: 500
+    }
+
+    .svg-line {
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round
+    }
+
+    .svg-point {
+      stroke: none
+    }
+
+    .chart {
+      padding: 8px 20px 0
+    }
+
+    .chart svg {
+      display: block
+    }
+
+    .chart-panel {
+      height: clamp(320px, 46vh, 470px);
+      min-height: 320px
+    }
+
+    /* Excel-inspired chart, rendered at its actual dimensions. */
+    .chart {
+      padding: 0;
+      margin: 10px 20px 0;
+      background: #fdfdfb
+    }
+
+    .chart svg {
+      font-family: Calibri, 'Segoe UI', 'Microsoft JhengHei', sans-serif
+    }
+
+    .svg-grid-line {
+      stroke: #d9dce1;
+      stroke-width: 1
+    }
+
+    .svg-axis {
+      stroke: #a6adb7;
+      stroke-width: 1
+    }
+
+    .svg-label {
+      fill: #66717d;
+      font-size: 12px
+    }
+
+    .svg-value-label {
+      fill: #3d4652;
+      font-size: 12px;
+      font-weight: 400
+    }
+
+    .svg-line {
+      stroke-width: 2.5
+    }
+
+    .svg-point {
+      stroke: #4472c4;
+      stroke-width: 1
+    }
+  </style>
+  <header>
+    <div class="brand">
+      <div class="logo">
+        ▥
+      </div>
+      <div>
+        <h1>機台異常監控</h1>
+        <small>EQUIPMENT LOG MONITOR</small>
+      </div>
+    </div>
+    <div>
+      <span class="demo">模擬資料 · 版面示範</span>
+      <small>工程師 Chen　｜　2026 / 10 / 12</small>
+    </div>
+  </header>
+  <main>
+    <aside class="left" id="left">
+      <section class="panel machine-panel">
+        <div class="section-head">
+          <span><span class="orange">●</span> 今日有錯誤</span>
+          <span class="count">6 台</span>
+        </div>
+        <div class="list" id="alerts"></div>
+      </section>
+      <section class="panel machine-panel quiet">
+        <div class="section-head">
+          <span>負責機台 · 今日無錯誤</span>
+          <span class="count">8 台</span>
+        </div>
+        <div class="list" id="quiet"></div>
+      </section>
+    </aside>
+    <section class="right">
+      <section class="panel chart-panel">
+        <div class="chart-head">
+          <div>
+            <div class="title">
+              <span id="chart-name"></span>
+              <span style="font-weight:400;color:#b3bdca">/</span>
+              近七日錯誤趨勢
+            </div>
+            <small>2026 / 10 / 06 — 2026 / 10 / 12</small>
+          </div>
+        </div>
+        <div class="chart">
+          <svg aria-label="近七日錯誤數折線圖" id="chart" preserveaspectratio="xMidYMid meet" viewbox="0 0 940 470"></svg>
+        </div>
+        <div class="date-controls">
+          <button id="prev">← 上一日</button>
+          <strong id="date"></strong>
+          <button id="next">下一日 →</button>
+          <button id="today">今天</button>
+        </div>
+      </section>
+      <section class="panel log-panel">
+        <div class="log-head">
+          <div>
+            <div class="title">
+              錯誤訊息
+              <span class="count" id="log-count"></span>
+            </div>
+            <small id="log-context"></small>
+          </div>
+        </div>
+        <div class="log-scroll" id="log-scroll"></div>
+        <div class="footer">
+          <span>點選圖表資料點，或使用箭頭切換日期</span>
+          <span>示範資料 · 非即時監控</span>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script>
+    const machines = [
+      ['ETCH-023', '蝕刻 · AREA A', [12, 28, 16, 8, 35, 19, 42]],
+      ['CVD-008', '薄膜 · AREA B', [4, 9, 2, 15, 6, 8, 27]],
+      ['PVD-012', '濺鍍 · AREA B', [18, 3, 8, 11, 22, 7, 18]],
+      ['CMP-006', '研磨 · AREA C', [2, 5, 7, 3, 9, 6, 12]],
+      ['DIFF-015', '擴散 · AREA D', [0, 4, 1, 6, 2, 3, 7]],
+      ['WET-031', '清洗 · AREA A', [3, 0, 2, 5, 1, 0, 3]], ...['ETCH-024', 'ETCH-025', 'CVD-009', 'PVD-013', 'CMP-007', 'DIFF-016', 'WET-032', 'WET-033'].map((n, i) => [n, '負責機台 · Chen', [i + 2, 0, 5 + i, 3, 8, 2 + i, 0]])
+    ];
+    let selected = 0,
+      day = 6;
+    const dates = Array.from({
+      length: 7
+    }, (_, i) => `2026/10/${String(i+6).padStart(2,'0')}`);
+    const $ = id => document.getElementById(id);
+
+    function lists() {
+      ['alerts', 'quiet'].forEach((id, g) => {
+        $(id).innerHTML = machines.map((m, i) => ((i < 6) !== (g === 0)) ? '' : `<button class="machine ${i===selected?'active':''}" data-machine="${i}"><span><span class="machine-name">${m[0]}</span><small>${m[1]}</small></span><span class="badge">${m[2][6]}</span></button>`).join('')
+      });
+      document.querySelectorAll('[data-machine]').forEach(b => b.onclick = () => {
+        selected = +b.dataset.machine;
+        day = 6;
+        lists();
+        chart();
+        logs()
+      })
+    }
+
+    function niceNumber(range, round) {
+      const exponent = Math.floor(Math.log10(range || 1)),
+        fraction = range / Math.pow(10, exponent);
+      let nice;
+      if (round) {
+        if (fraction < 1.5) nice = 1;
+        else if (fraction < 3) nice = 2;
+        else if (fraction < 7) nice = 5;
+        else nice = 10
+      } else {
+        if (fraction <= 1) nice = 1;
+        else if (fraction <= 2) nice = 2;
+        else if (fraction <= 5) nice = 5;
+        else nice = 10
+      }
+      return nice * Math.pow(10, exponent)
+    }
+
+    function niceScale(maxVal) {
+      maxVal = Math.max(1, Math.ceil(maxVal || 0));
+      const range = niceNumber(maxVal, false),
+        step = Math.max(1, Math.ceil(niceNumber(range / 4, true))),
+        max = Math.max(1, Math.ceil(maxVal / step) * step);
+      return {
+        max,
+        step
+      }
+    }
+
+    function chart() {
+      const machine = machines[selected],
+        w = Math.max(320, $('chart').clientWidth || 940),
+        h = Math.max(200, $('chart').clientHeight || 320),
+        m = {
+          t: 30,
+          r: w < 600 ? 82 : 115,
+          b: 42,
+          l: 48
+        },
+        plotW = w - m.l - m.r,
+        plotH = h - m.t - m.b,
+        color = '#4472c4',
+        scale = niceScale(Math.max(...machine[2]));
+      const x = i => m.l + i / 6 * plotW,
+        y = v => m.t + plotH - v / scale.max * plotH;
+      let s = '';
+      for (let v = 0; v <= scale.max; v += scale.step) {
+        const py = y(v);
+        s += `<line x1="${m.l}" y1="${py}" x2="${m.l+plotW}" y2="${py}" class="svg-grid-line"/><text x="${m.l-10}" y="${py+4}" text-anchor="end" class="svg-label">${v}</text>`
+      }
+      s += `<line x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${m.t+plotH}" class="svg-axis"/><line x1="${m.l}" y1="${m.t+plotH}" x2="${m.l+plotW}" y2="${m.t+plotH}" class="svg-axis"/>`;
+      const pts = machine[2].map((v, i) => [x(i), y(v), v]);
+      s += `<path d="${pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')}" class="svg-line" stroke="${color}"/>`;
+      pts.forEach((p, i) => {
+        s += `<g data-day="${i}" tabindex="0" role="button" aria-label="${dates[i]}：${p[2]} 筆錯誤" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="17" fill="transparent"/><circle cx="${p[0]}" cy="${p[1]}" r="4" class="svg-point" fill="${color}"/><text x="${p[0]}" y="${p[1]-9}" text-anchor="middle" class="svg-value-label">${p[2]}</text><text x="${p[0]}" y="${m.t+plotH+24}" text-anchor="middle" class="svg-label">10/${String(i+6).padStart(2,'0')}</text></g>`
+      });
+      const gy = m.t + 18;
+      s += `<line x1="${w-m.r+24}" y1="${gy-4}" x2="${w-m.r+46}" y2="${gy-4}" stroke="${color}" stroke-width="2" stroke-linecap="round"/><text x="${w-m.r+52}" y="${gy}" class="svg-label">錯誤筆數</text>`;
+      $('chart').setAttribute('viewBox', `0 0 ${w} ${h}`);
+      $('chart').innerHTML = s;
+      $('chart-name').textContent = machine[0];
+      document.querySelectorAll('[data-day]').forEach(g => {
+        g.onclick = () => {
+          day = +g.dataset.day;
+          logs()
+        };
+        g.onkeydown = e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            g.onclick()
+          }
+        }
+      })
+    }
+    const categories = [{
+      name: 'ReadTagFail',
+      subs: [{
+        name: 'Tag 讀取逾時 / Read timeout',
+        text: 'ReadTagFail: Unable to read equipment tag within 5000ms. EquipmentId={id}; TagName=ProcessState; Driver=SECS; RetryCount=3; ConnectionStatus=Connected.'
+      }, {
+        name: 'Tag 值無效 / Invalid tag value',
+        text: 'ReadTagFail: Invalid value returned from equipment. EquipmentId={id}; TagName=ChamberPressure; ExpectedType=Double; ReceivedValue=NULL; Module=PM2.'
+      }]
+    }, {
+      name: 'SecsCommunicationFail',
+      subs: [{
+        name: 'S6F11 回覆逾時 / Reply timeout',
+        text: 'SECS S6F11 event report timeout. EquipmentId={id}; EventId=2001; TransactionId=0x00008A32; Reply not received within T3=45s; LotId=LOT20261012083.'
+      }, {
+        name: 'HSMS 連線中斷 / Connection reset',
+        text: 'HSMS connection interrupted. EquipmentId={id}; RemoteEndpoint=172.17.22.34:5000; SocketError=ConnectionReset; Reconnect scheduled in 10 seconds.'
+      }]
+    }, {
+      name: 'RecipeValidationFail',
+      subs: [{
+        name: '製程參數異常 / Parameter mismatch',
+        text: 'Recipe validation failed. EquipmentId={id}; LotId=LOT20261012083; RecipeId=ETCH_PROD_A02; Parameter=RF_POWER; Expected=850; Actual=0; StepId=07.'
+      }]
+    }];
+
+    function logs() {
+      const m = machines[selected],
+        n = m[2][day];
+      $('date').textContent = dates[day];
+      $('prev').disabled = day === 0;
+      $('next').disabled = day === 6;
+      $('log-count').textContent = n + ' 筆';
+      $('log-context').textContent = `${m[0]}　 /　 ${dates[day]}　 /　 錯誤 log`;
+      let sequence = 0;
+      const groups = categories.map(c => ({
+        ...c,
+        subs: c.subs.map(sub => ({
+          ...sub,
+          entries: []
+        }))
+      }));
+      for (let i = 0; i < n; i++) {
+        const cat = i % 3,
+          sub = Math.floor(i / 3) % groups[cat].subs.length;
+        groups[cat].subs[sub].entries.push(i)
+      }
+      $('log-scroll').innerHTML = n ? groups.map(c => {
+        const total = c.subs.reduce((a, b) => a + b.entries.length, 0);
+        return total ? `<section class="log-group"><h3 class="group-title">${c.name}<small>${total} 筆</small></h3>${c.subs.filter(sub=>sub.entries.length).map(sub=>`<h4 class="sub-title">${sub.name}<small>${sub.entries.length} 筆</small></h4>${sub.entries.map(i=>`<div class="log-line"><span class="log-time">${String(17-Math.floor(i/6)).padStart(2,'0')}:${String(53-i%6*8).padStart(2,'0')}:${String(i*7%60).padStart(2,'0')}.${String(i*137%1000).padStart(3,'0')}</span><div class="log-text">[${dates[day]}] ${sub.text.replace('{id}',m[0])}</div></div>`).join('')}`).join('')}</section>` : ''
+      }).join('') : '<div class="empty">此日期無錯誤紀錄<br><small>可使用上一日按鈕查看歷史 log</small></div>';
+      $('log-scroll').scrollTop = 0
+    }
+    $('prev').onclick = () => {
+      if (day > 0) {
+        day--;
+        logs()
+      }
+    };
+    $('next').onclick = () => {
+      if (day < 6) {
+        day++;
+        logs()
+      }
+    };
+    $('today').onclick = () => {
+      day = 6;
+      logs()
+    };
+    lists();
+    chart();
+    logs();
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => chart()).observe(document.querySelector('.chart'))
+    }
+  </script>
+</html>
